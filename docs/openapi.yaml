@@ -1,0 +1,167 @@
+openapi: 3.0.3
+info:
+  title: SI-PKL SMART API (Sistem Informasi Presensi PKL Siswa SMK)
+  description: >
+    API RESTful untuk presensi dan monitoring siswa Praktik Kerja Lapangan (PKL)
+    SMK berbasis Geolocation GPS, verifikasi kamera watermark, dan integrasi Supabase.
+  version: 1.0.0
+servers:
+  - url: https://your-project.supabase.co/rest/v1
+    description: Supabase PostgREST Production API
+  - url: http://localhost:3000/api
+    description: Local Development Server
+
+paths:
+  /auth/v1/token:
+    post:
+      summary: Autentikasi Pengguna
+      description: Login akun siswa, guru pembimbing, wali kelas, atau admin.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  example: budi.santoso@smk.sch.id
+                password:
+                  type: string
+                  example: Siswa@12345
+      responses:
+        '200':
+          description: Berhasil login, mengembalikan JWT Bearer Token.
+
+  /attendance_records:
+    get:
+      summary: Mengambil Daftar Presensi
+      description: Mengambil rekap presensi dengan filter tanggal, siswa, atau kelas.
+      parameters:
+        - name: work_date
+          in: query
+          schema:
+            type: string
+            format: date
+          example: '2026-10-12'
+        - name: student_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Daftar presensi siswa.
+    post:
+      summary: Kirim Presensi Datang
+      description: Mencatat presensi datang siswa beserta GPS, timestamp server, dan foto watermark.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - student_id
+                - work_date
+                - check_in_time
+                - check_in_latitude
+                - check_in_longitude
+                - check_in_accuracy
+                - check_in_photo_path
+              properties:
+                student_id:
+                  type: string
+                  format: uuid
+                work_date:
+                  type: string
+                  format: date
+                  example: '2026-10-12'
+                check_in_time:
+                  type: string
+                  format: date-time
+                check_in_latitude:
+                  type: number
+                  format: double
+                  example: -7.558321
+                check_in_longitude:
+                  type: number
+                  format: double
+                  example: 110.828192
+                check_in_accuracy:
+                  type: number
+                  example: 14.5
+                check_in_location_status:
+                  type: string
+                  enum: [DALAM_AREA, LUAR_AREA, GPS_TIDAK_AKURAT, BELUM_TERVERIFIKASI]
+                check_in_photo_path:
+                  type: string
+                check_in_photo_watermarked_path:
+                  type: string
+                is_field_duty:
+                  type: boolean
+                  default: false
+                field_duty_reason:
+                  type: string
+      responses:
+        '201':
+          description: Presensi datang berhasil disimpan.
+        '409':
+          description: Presensi ganda pada tanggal kerja yang sama ditolak.
+
+    patch:
+      summary: Kirim Presensi Pulang / Koreksi Presensi
+      description: Memperbarui catatan presensi dengan data pulang atau koreksi oleh wali kelas.
+      responses:
+        '200':
+          description: Data presensi berhasil diperbarui.
+
+  /absence_requests:
+    get:
+      summary: Daftar Pengajuan Izin dan Sakit
+      responses:
+        '200':
+          description: Daftar pengajuan siswa.
+    post:
+      summary: Ajukan Izin atau Sakit
+      description: Siswa mengajukan izin atau sakit dengan keterangan wajib.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_id, type, start_date, end_date, reason]
+              properties:
+                student_id:
+                  type: string
+                  format: uuid
+                type:
+                  type: string
+                  enum: [IZIN, SAKIT]
+                start_date:
+                  type: string
+                  format: date
+                end_date:
+                  type: string
+                  format: date
+                duration_days:
+                  type: integer
+                  example: 1
+                reason:
+                  type: string
+                  description: Keterangan wajib diisi
+                  example: Sakit demam dan beristirahat di rumah sesuai surat dokter
+                attachment_path:
+                  type: string
+      responses:
+        '201':
+          description: Pengajuan berhasil dikirim dan menunggu persetujuan guru.
+
+  /audit_logs:
+    get:
+      summary: Mengambil Riwayat Audit Koreksi
+      responses:
+        '200':
+          description: Log audit perubahan status presensi.

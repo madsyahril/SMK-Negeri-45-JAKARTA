@@ -1,0 +1,11 @@
+{
+  "name": "SI-PKL SMART - Presensi & Monitoring Siswa SMK",
+  "description": "Sistem Informasi Presensi dan Monitoring PKL Siswa SMK berbasis GPS Geolocation, Kamera Watermark, dan Verifikasi DUDI",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
